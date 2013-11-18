@@ -4,7 +4,6 @@ var weather = require('weather');
 
 
 app.get('/', function(req, res){
-  weather();
   res.send('hello world');
 });
 
@@ -16,7 +15,3 @@ weather({location: 'Melbourne'}, function(data) {
 
 var port = process.env.PORT || 5000;
 app.listen(port);
-
-
-
-
