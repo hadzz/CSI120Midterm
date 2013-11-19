@@ -1,0 +1,18 @@
+body{
+		background-color:  #ff9933;
+}
+.hashtag{
+		text-align: center;
+}
+.back{
+		color: white;
+		background-color: blue;
+}
+
+table{
+		width: 100%;
+}
+
+td{
+	text-align: center;
+}
