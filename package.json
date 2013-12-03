@@ -6,6 +6,9 @@
     "express": "latest",
     "ejs": "latest",
     "weathers": "latest"
+    "twit": "latest"
+    "cloneextend": "latest"
+    "Sentimental": "latest"
   },
   "engines": {
     "node": "0.10.13",
