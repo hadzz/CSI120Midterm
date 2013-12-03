@@ -2,19 +2,60 @@
 <html>
 	
 	<head>
+	<title>Twitter API Project</title>
 	<meta charset="utf-8"/>
-	<link rel="stylesheet" type="text" href="style.css">
+	<link rel="stylesheet" type="text/css" href="style.css">
 	</head>
 	<body>
-		<form>
-		<label>Enter Hashtag 1 </label><input type="text" name="Hashtag 1"> <br/>
-		<label>Enter Hashtag 2 </label><input type="text" name="Hashtag 2"> <br/>
-		<label>Date </label><input type="text" name="Date"> <br/>
-		<label>Mile Radius </label><input type="text" name="Mile Radius"> <br/>
-		</form>
-		<br/>
-		
-		<input class="submit" type="submit">
+		<h1>Twitter Sentiment Score Analyser</h1>
+		<form action="/submit" method="post">
+			<fieldset>
+				<label>Hashtag 1 </label>
+				<input type="text" name="hashtag1"/> <br/>
+				
+				<label>Hashtag 2 </label>
+				<input type="text" name="hashtag2"/> <br/>
+				
+				<label>Date Start (yyyy-mm-dd) </label>
+				<input type="text" name="dateStart"/> <br/>
 
+				<label>Date End (yyyy-mm-dd) </label>
+				<input type="text" name="dateEnd"/> <br/>
+				
+				<label>Mile Radius </label>
+				<input type="text" name="mileRadius"/> <br/>
+				<input type="hidden" name="geoLocationLat" id="geoLocationLat" value=""/>
+				<input type="hidden" name="geoLocationLong" id="geoLocationLong" value=""/>
+				<br/>
+				<p style="text-align: center;">
+					<input class="submit" type="submit" action="http://hadzz.com:5000/submit" method="post"/>
+				</p>
+			</fieldset>
+		</form>
 	</body>
+	<script>
+		function getGeoloc()
+		{
+		   if (navigator.geolocation) {
+			  navigator.geolocation.getCurrentPosition(success, error);
+		   } else {
+			  console.log('geoloc not supported');
+			  return false;
+		   }
+		}
+
+		function error(position)
+		{
+		   console.log("Error finding geoloc...");
+		}
+
+		function success(position)
+		{
+			var latitude = position.coords.latitude;
+			var longitude = position.coords.longitude;
+			document.getElementById('geoLocationLat').value=latitude;
+			document.getElementById('geoLocationLong').value=longitude;
+		}
+		getGeoloc();
+	</script>
 </html>
