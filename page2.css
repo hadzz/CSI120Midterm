@@ -1,0 +1,26 @@
+table{
+		border: 3 solid black;
+		width: 100%;
+}
+
+.top {
+		background-color: #ff9933;
+		width: 50%;
+		text-align: cemter;
+}
+
+.data{
+		background-color: #ffcc00;
+		width: 50%;
+		text-align: cemter;
+}
+
+.compare{
+		color: white;
+		background-color: blue;
+}
+
+.back{
+		color: white;
+		background-color: blue;
+}
