@@ -8,6 +8,10 @@
     "weathers": "latest",
 	"weather.js": "latest",
 	"jquery": "latest",
+	"twit": "latest",
+	"cloneextend": "latest",
+	"Sentimental": "latest",
+	"jqtpl": "latest",
 	"sugar": "latest"
   },
   "engines": {
