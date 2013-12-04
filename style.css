@@ -18,7 +18,6 @@ label{
 
 input{
 	display: inline-block;
-	float: ;
 }
 
 
@@ -34,6 +33,7 @@ form{
 	margin: 0 auto; 
 	width:500px;
 	border-radius:20px;
+	outline-style: none;
 }
 
 
