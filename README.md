@@ -1,3 +1,0 @@
-CSI120Midterm
-=============
-Blah
