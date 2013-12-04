@@ -4,12 +4,11 @@
   "main": "server.js",
   "dependencies": {
     "express": "latest",
+    "ejs": "latest",
     "weathers": "latest",
-    "twit": "latest",
-    "connect": "latest",
-    "cloneextend": "latest",
-    "Sentimental": "latest",
-    "jqtpl": "latest"
+	"weather.js": "latest",
+	"jquery": "latest",
+	"sugar": "latest"
   },
   "engines": {
     "node": "0.10.13",
