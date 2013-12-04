@@ -12,6 +12,7 @@
 	"cloneextend": "latest",
 	"Sentimental": "latest",
 	"jqtpl": "latest",
+	"yr.no-forecast": "latest",
 	"sugar": "latest"
   },
   "engines": {

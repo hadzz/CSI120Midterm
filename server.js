@@ -3,6 +3,7 @@ var app = express();
 var weathers = require('weathers');
 var weather = require('weather.js/weather.js');
 //var connect = require('connect');
+var yrno = require('yr.no-forecast')
 var fs = require('fs');
 var Twit = require('twit');
 var ce = require('cloneextend');
@@ -91,7 +92,6 @@ app.post('/submit', function(req, res) {
 	
 	var numOfTweets = 9999;
 	
-	var output;
 	
 	if ((htag1 != "#" && htag1 != "") && (htag2 != "#" && htag2 != ""))
 	{
@@ -107,12 +107,13 @@ app.post('/submit', function(req, res) {
 						res.render(__dirname + '/page2_2.html', function(err, html2)
 						{
 							twitReply = ce.clone(reply);
-							sortTweetsBySentiment(twitReply);
 							var hostName = req.get('host');
 							var header = "<p>Number of Results: " + twitReply.statuses.length + "</p>";
-							output = createTableBody();
-							html2 = html2.replace("%HOSTNAME%", hostName);
-							res.send(header + html1 + output + html2);
+							createTableBody(sendHTML);
+							function sendHTML(output) {
+    					        html2 = html2.replace("%HOSTNAME%", hostName);
+    							res.send(header + html1 + output + html2);
+							}
 						})
 					})
 				}
@@ -125,7 +126,7 @@ app.post('/submit', function(req, res) {
 	else if (htag1 != "#" && htag1 != "")
 	{
 		htag1 = "#" + htag1;
-		T.get('search/tweets', {q: htag1, count: numOfTweets, language: 'en', since: dateStart, until: dateEnd}, 
+		T.get('search/tweets', {q: htag1, count: numOfTweets, lang: 'en', since: dateStart, until: dateEnd}, 
 		function(err, reply) {
 			if (typeof(reply.statuses[0]) != 'undefined')
 			{
@@ -134,11 +135,13 @@ app.post('/submit', function(req, res) {
 					res.render(__dirname + '/page2_2.html', {test1: 'Results'}, function(err, html2)
 					{ 
 						twitReply = clone(reply);
-						sortTweetsBySentiment(twitReply);
+						var hostName = req.get('host');
 						var header = "<p>Number of Results: " + twitReply.statuses.length + "</p>";
-						output = createTableBody();
-						html2 = html2.replace("%HOSTNAME%", hostName);
-						res.send(header + html1 + output + html2);
+						createTableBody(sendHTML);
+						function sendHTML(output) {
+    					       html2 = html2.replace("%HOSTNAME%", hostName);
+    						res.send(header + html1 + output + html2);
+						}
 					})
 				});
 			}
@@ -150,7 +153,7 @@ app.post('/submit', function(req, res) {
 	}
 	else if (htag2 != "#" && htag2 != "")
 	{
-		T.get('search/tweets', {q: htag2, count: numOfTweets, language: 'en', since: dateStart, until: dateEnd}, 
+		T.get('search/tweets', {q: htag2, count: numOfTweets, lang: 'en', since: dateStart, until: dateEnd}, 
 		function(err, reply) {
 			if (typeof(reply.statuses[0]) != 'undefined')
 			{
@@ -159,11 +162,13 @@ app.post('/submit', function(req, res) {
 					res.render(__dirname + '/page2_2.html', {test1: 'Results'}, function(err, html2)
 					{ 
 							twitReply = clone(reply);
-							sortTweetsBySentiment(twitReply);
 							var header = "<p>Number of Results: " + twitReply.statuses.length + "</p>";
-							output = createTableBody();
-							html2 = html2.replace("%HOSTNAME%", hostName);
-							res.send(header + html1 + output + html2);
+							var hostName = req.get('host');
+    						createTableBody(sendHTML);
+    						function sendHTML(output) {
+        					       html2 = html2.replace("%HOSTNAME%", hostName);
+        						res.send(header + html1 + output + html2);
+    						}
 					})
 				});
 			}
@@ -177,11 +182,12 @@ app.post('/submit', function(req, res) {
 	
 });
 
-function sortTweetsBySentiment()
+function sortTweetsBySentiment(obj)
 {
-	twitReply.statuses.sort( function(a, b) {
+	obj.sort( function(a, b) {
 		return parseInt(analyze(b.text).score) - parseInt(analyze(a.text).score);
 	});
+	return obj;
 }
 
 function lookForEmpty()
@@ -195,12 +201,10 @@ function lookForEmpty()
 	return false;	
 }
 
-function createTableBody()
+function createTableBody(callback)
 {
 
 	var output = "";
-	
-	
 	
 
 	for (var i=0; i<twitReply.statuses.length; i++) {
@@ -214,53 +218,113 @@ function createTableBody()
 		}
 	}
 	
-	for (var i=0; i<tweetsGeo.length; i++) {
+	tweetsGeo = sortTweetsBySentiment(tweetsGeo);
+	tweetsNoGeo = sortTweetsBySentiment(tweetsNoGeo);
+	
+	waitForCallback(output, createRestOfTable);
+	
+	function createRestOfTable(output)
+	{
+        for (var i=0; i<tweetsNoGeo.length; i++)
+        {
+            var score = analyze(tweetsNoGeo[i].text).score;
+            output += "<tr class=\"data\">" +
+                "<td style='text-align: center'>" + '<img src="' + tweetsNoGeo[i].user.profile_image_url + '"/>' +
+                "</td>" +
+                "<td style='text-align: center'>@" + tweetsNoGeo[i].user.screen_name +
+                "</td>" +
+                "<td>" + tweetsNoGeo[i].created_at + "</td>" +
+                "<td>" + JSON.stringify(tweetsNoGeo[i].text, null, 4).replace(/["']/g, "") + "</td>" +
+                "<td style='text-align: center'>" + score + "</td>" +
+                "<td style='text-align: center'>" + "N/A" + "</td>" +
+                "<td style='text-align: center'>" + "N/A" + "</td>" +
+                "</tr>\n";
+        }
+        callback(output);
+	}
+}
+
+function waitForCallback(output, callback)
+{
+    if (tweetsGeo.length==0) {
+        callback("");
+    }
+    
+    for (var i=0; i<tweetsGeo.length; i++) {
 		if (i == 0)
 		{
-		//console.log(tweetsGeo[i]);
+		    //console.log(tweetsGeo[i]);
 		}
-		var score = analyze(tweetsGeo[i].text).score;
-		var location = tweetsGeo[i].place.full_name;
+		
+		/*
+		                                      lat           long
+		  geo: { type: 'Point', coordinates: [ 40.77893666, -73.9622982 ] },
+		                                      long          lat
+  coordinates: { type: 'Point', coordinates: [ -73.9622982, 40.77893666 ] },
+		*/
+		
+		var longitude = tweetsGeo[i].coordinates.coordinates[0];
+		var latitude = tweetsGeo[i].coordinates.coordinates[1];
+		
+		console.log(latitude + ", " + longitude);
+		
+		
+		var callbackCounter = 0;
+		var arrLength = tweetsGeo.length;
 		var condition = "N/A";
 		
-		weather.getCurrent("Kansas City", function(forecast) {
-			//expect(forecast.day).to.be.a(weather.Forecast);
-			if (forecast)
-			{
-				console.log(forecast.conditions());	
-				condition = forecast.conditions();
-			}
-		});
+		function myCallback(err, weatherData) {
+		    if (err) {
+		        condition = "null";
+		        console.log('error returning weather object');
+		    } else {
+		        condition = weatherData.icon;
+		        //console.log(weatherData.icon);
+		    }
+		}
 		
-		output += "<tr class=\"data\">" +
-		"<td style='text-align: center'>" + '<img src="' + tweetsNoGeo[i].user.profile_image_url + '"/>' +
-		"</td>" +
-		"<td style='text-align: center'>@" + tweetsNoGeo[i].user.screen_name +
-		"</td>" +
-		"<td>" + tweetsGeo[i].created_at + "</td>" +
-		"<td>" + JSON.stringify(tweetsGeo[i].text, null, 4).replace(/["']/g, "") + "</td>" +
-		"<td style='text-align: center'>" + score + "</td>" +
-		"<td style='text-align: center'>" + location + "</td>" +
-		"<td style='text-align: center'>" + condition+ "</td>" +
-		"</tr>\n";
+		
+		
+		yrno.getWeather({lat: latitude, lon: longitude}, function(err, location){
+		    //console.log("GET WEATHER");
+		    if (err) {
+		        myCallback(err, null)
+    			return;
+		    }
+		    
+		    console.log("loading " + (callbackCounter+1) + " of " + tweetsGeo.length);
+		    
+	        location.getCurrentSummary((function(tweetsGeo){
+        	        return function(err2, data) {
+                        var tweet = tweetsGeo[callbackCounter];
+                        var score = analyze(tweet.text).score;
+	                	var city = tweet.place.full_name;
+                        //condition = data.icon;
+                        //console.log("GET SUMMARY");
+                        //console.log(condition);
+                        //console.log(data.icon);
+                        output += "<tr class=\"data\">" +
+                        "<td style='text-align: center'>" + '<img src="' + tweet.user.profile_image_url + '"/>' +
+                        "</td>" +
+                        "<td style='text-align: center'>@" + tweet.user.screen_name +
+                        "</td>" +
+                        "<td>" + tweet.created_at + "</td>" +
+                        "<td>" + JSON.stringify(tweet.text, null, 4).replace(/["']/g, "") + "</td>" +
+                        "<td style='text-align: center'>" + score + "</td>" +
+                        "<td style='text-align: center'>" + city + "</td>" +
+                        "<td style='text-align: center'>" + data.icon + "</td>" +
+                        "</tr>\n";
+                        callbackCounter++;
+                        if (callbackCounter == arrLength)
+                        {
+                            callback(output)
+                        }
+                        
+    	        };
+	        })(tweetsGeo)
+	        );
+		});
 	}
-	
-	for (var i=0; i<tweetsNoGeo.length; i++)
-	{
-		var score = analyze(tweetsNoGeo[i].text).score;
-		output += "<tr class=\"data\">" +
-			"<td style='text-align: center'>" + '<img src="' + tweetsNoGeo[i].user.profile_image_url + '"/>' +
-			"</td>" +
-			"<td style='text-align: center'>@" + tweetsNoGeo[i].user.screen_name +
-			"</td>" +
-			"<td>" + tweetsNoGeo[i].created_at + "</td>" +
-			"<td>" + JSON.stringify(tweetsNoGeo[i].text, null, 4).replace(/["']/g, "") + "</td>" +
-			"<td style='text-align: center'>" + score + "</td>" +
-			"<td style='text-align: center'>" + "N/A" + "</td>" +
-			"</tr>\n";
-	}
-	
-	return output;
 }
 
 function logData(data)
@@ -284,5 +348,8 @@ function clone(obj) {
     return copy;
 }
 
-var port = process.env.PORT || 5000;
-app.listen(port);
+
+
+var port = process.env.PORT;
+var ip = process.env.IP;
+app.listen(port, ip);
