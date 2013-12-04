@@ -1,5 +1,5 @@
 body{
-	background-color: #CCCCCC;
+	background-color: #FFFFFF;
 }
 
 h1{
@@ -18,7 +18,7 @@ label{
 
 input{
 	display: inline-block;
-	float: left;
+	float: ;
 }
 
 
@@ -26,9 +26,14 @@ input{
 	color: white;
 	background-color: blue;
 	width : 120px;
+	buttonAlign: 'right';
 }
 
 form{
+	background-color: #CCCCCC;
 	margin: 0 auto; 
 	width:500px;
+	border-radius:20px;
 }
+
+

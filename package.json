@@ -5,7 +5,10 @@
   "dependencies": {
     "express": "latest",
     "ejs": "latest",
-    "weathers": "latest"
+    "weathers": "latest",
+	"weather.js": "latest",
+	"jquery": "latest",
+	"sugar": "latest"
   },
   "engines": {
     "node": "0.10.13",

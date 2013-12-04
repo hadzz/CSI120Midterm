@@ -11,25 +11,27 @@
 		<form action="/submit" method="post">
 			<fieldset>
 				<label>Hashtag 1 </label>
-				<input type="text" name="hashtag1"/> <br/>
+				<input type="text" name="hashtag1" value="#"/> <br/>
 				
 				<label>Hashtag 2 </label>
-				<input type="text" name="hashtag2"/> <br/>
+				<input type="text" name="hashtag2" value="#"/> <br/>
 				
 				<label>Date Start (yyyy-mm-dd) </label>
-				<input type="text" name="dateStart"/> <br/>
+				<input type="date" name="dateStart"/> <br/>
 
 				<label>Date End (yyyy-mm-dd) </label>
-				<input type="text" name="dateEnd"/> <br/>
+				<input type="date" name="dateEnd"/> <br/>
 				
 				<label>Mile Radius </label>
 				<input type="text" name="mileRadius"/> <br/>
 				<input type="hidden" name="geoLocationLat" id="geoLocationLat" value=""/>
 				<input type="hidden" name="geoLocationLong" id="geoLocationLong" value=""/>
 				<br/>
-				<p style="text-align: center;">
-					<input class="submit" type="submit" action="http://hadzz.com:5000/submit" method="post"/>
-				</p>
+				<div text-align:center>
+					<p style="text-align: center;">
+						<input class="submit" type="submit" action="http://hadzz.com:5000/submit" method="post"/>
+					</p>
+				</div>
 			</fieldset>
 		</form>
 	</body>
