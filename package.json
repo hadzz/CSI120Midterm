@@ -5,16 +5,11 @@
   "dependencies": {
     "express": "latest",
     "ejs": "latest",
-    "weathers": "latest",
-	"weather.js": "latest",
-	"jquery": "latest",
 	"twit": "latest",
 	"cloneextend": "latest",
 	"Sentimental": "latest",
 	"jqtpl": "latest",
-	"yr.no-forecast": "latest",
-	"geocoder": "latest",
-	"sugar": "latest"
+	"yr.no-forecast": "latest"
   },
   "engines": {
     "node": "0.10.13",
