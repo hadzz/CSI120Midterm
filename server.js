@@ -247,7 +247,7 @@ function createNoGeoTable (output, callback)
 
 function createGeoTable (output, callback)
 {
-    if (tweetsGeo[0] && tweetsGeo.length === 0) {
+    if (!tweetsGeo[0] || tweetsGeo.length === 0) {
         callback(output);
     }
     
