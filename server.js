@@ -7,6 +7,7 @@ var yrno = require('yr.no-forecast')
 var fs = require('fs');
 var Twit = require('twit');
 var ce = require('cloneextend');
+var geocoder = require('geocoder');
 var analyze = require('Sentimental').analyze,
 	positivity = require('Sentimental').positivity,
 	negativity = require('Sentimental').negativty;
@@ -90,7 +91,7 @@ app.post('/submit', function(req, res) {
 		}
     });
 	
-	var numOfTweets = 9999;
+	var numOfTweets = 100;
 	
 	
 	if ((htag1 != "#" && htag1 != "") && (htag2 != "#" && htag2 != ""))
@@ -203,16 +204,12 @@ function lookForEmpty()
 
 function createTableBody(callback)
 {
-
-	var output = "";
-	
-
 	for (var i=0; i<twitReply.statuses.length; i++) {
-		if (!twitReply.statuses[i].place)
+		if (twitReply.statuses[i].user.location && !twitReply.statuses[i].place)
 		{
 			tweetsNoGeo.push(twitReply.statuses[i]);
 		}
-		else
+		else if (twitReply.statuses[i].place)
 		{
 			tweetsGeo.push(twitReply.statuses[i]);
 		}
@@ -221,27 +218,150 @@ function createTableBody(callback)
 	tweetsGeo = sortTweetsBySentiment(tweetsGeo);
 	tweetsNoGeo = sortTweetsBySentiment(tweetsNoGeo);
 	
-	waitForCallback(output, createRestOfTable);
+	var output1 = '';
+	var output2 = '';
 	
-	function createRestOfTable(output)
-	{
-        for (var i=0; i<tweetsNoGeo.length; i++)
-        {
-            var score = analyze(tweetsNoGeo[i].text).score;
-            output += "<tr class=\"data\">" +
-                "<td style='text-align: center'>" + '<img src="' + tweetsNoGeo[i].user.profile_image_url + '"/>' +
-                "</td>" +
-                "<td style='text-align: center'>@" + tweetsNoGeo[i].user.screen_name +
-                "</td>" +
-                "<td>" + tweetsNoGeo[i].created_at + "</td>" +
-                "<td>" + JSON.stringify(tweetsNoGeo[i].text, null, 4).replace(/["']/g, "") + "</td>" +
-                "<td style='text-align: center'>" + score + "</td>" +
-                "<td style='text-align: center'>" + "N/A" + "</td>" +
-                "<td style='text-align: center'>" + "N/A" + "</td>" +
-                "</tr>\n";
+	createGeoTable(output1, function(output1Res) {
+            createNoGeoTable(output2, function(output2Res) {
+                callback(output1Res + output2Res);
+            });
         }
+	);
+	
+	
+}
+
+function createNoGeoTable (output, callback)
+{
+    var callbackCounter = 0;
+    var callbackCounter2 = 0;
+    for (var i=0; i<tweetsNoGeo.length; i++) {
+        var city = tweetsNoGeo[i].user.location;
+        
+		var arrLength = tweetsNoGeo.length;
+        geocoder.geocode(city, function (err, data) {
+            if (data && data.status != "OVER_QUERY_LIMIT" && data.status != "ZERO_RESULTS") {
+                
+                callbackCounter2++;
+                console.log(data.results[0]);
+                var longitude = data.results[0].geometry.location.lng;
+	        	var latitude = data.results[0].geometry.location.lat;
+	        	console.log("Lon: " + longitude + ", Lat: " + latitude);
+	        	tweetsNoGeo[callbackCounter2 - 1]["aproxCity"] = data.results[0].formatted_address;
+	        	yrno.getWeather({lat: latitude, lon: longitude}, function(err, location){
+        		    if (err) {
+        		        callbackCounter++;
+        		        console.log('Error returning weather object');
+        		        if (callbackCounter == callbackCounter2)
+                        {
+                            callback(output);
+                        }
+        		    }
+        		    else {
+            		    console.log("loading " + (callbackCounter+1) + " of " + callbackCounter2);
+            	        location.getCurrentSummary((function(tweetsNoGeo){
+                    	        return function(err2, data) {
+                    	            if (!err2)
+                    	            {
+                    	                
+                                        var tweet = tweetsNoGeo[callbackCounter];
+                                        var score = analyze(tweet.text).score;
+                                        output += "<tr class=\"data\">" +
+                                        "<td style='text-align: center'>" + '<img src="' + tweet.user.profile_image_url + '"/>' +
+                                        "</td>" +
+                                        "<td style='text-align: center'>@" + tweet.user.screen_name +
+                                        "</td>" +
+                                        "<td>" + tweet.created_at + "</td>" +
+                                        "<td>" + JSON.stringify(tweet.text, null, 4).replace(/["']/g, "") + "</td>" +
+                                        "<td style='text-align: center'>" + score + "</td>" +
+                                        "<td style='text-align: center'>" + tweet.aproxCity + " (APROX)</td>" +
+                                        "<td style='text-align: center'>" + data.icon + "</td>" +
+                                        "</tr>\n";
+                                        callbackCounter++;
+                                        if (callbackCounter == callbackCounter2)
+                                        {
+                                            callback(output);
+                                        }
+                                    }
+                                    else {
+                                        callbackCounter++;
+                                        if (callbackCounter == callbackCounter2)
+                                        {
+                                            callback(output);
+                                        }
+                                        console.log('error geting summary');
+                                    }
+                            };
+            	        })(tweetsNoGeo)
+            	        );
+        		    }
+        		});
+            }
+        });
+    }
+}
+
+function createGeoTable (output, callback)
+{
+    if (tweetsGeo.length == 0) {
         callback(output);
-	}
+    }
+    
+    for (var i=0; i<tweetsGeo.length; i++) {
+        var callbackCounter = 0;
+		var arrLength = tweetsGeo.length;
+        var longitude = tweetsGeo[i].coordinates.coordinates[0];
+		var latitude = tweetsGeo[i].coordinates.coordinates[1];
+		
+    	yrno.getWeather({lat: latitude, lon: longitude}, function(err, location){
+		    if (err) {
+		        callbackCounter++;
+		        console.log('Error returning weather object');
+		        if (callbackCounter == arrLength)
+                {
+                    callback(output);
+                }
+		    }
+		    else {
+    		    console.log("loading " + (callbackCounter+1) + " of " + tweetsGeo.length);
+    	        location.getCurrentSummary((function(tweetsNoGeo){
+            	        return function(err2, data) {
+            	            if (!err2)
+            	            {
+                                var tweet = tweetsNoGeo[callbackCounter];
+                                var score = analyze(tweet.text).score;
+                                var city = tweet.place.full_name;
+                                output += "<tr class=\"data\">" +
+                                "<td style='text-align: center'>" + '<img src="' + tweet.user.profile_image_url + '"/>' +
+                                "</td>" +
+                                "<td style='text-align: center'>@" + tweet.user.screen_name +
+                                "</td>" +
+                                "<td>" + tweet.created_at + "</td>" +
+                                "<td>" + JSON.stringify(tweet.text, null, 4).replace(/["']/g, "") + "</td>" +
+                                "<td style='text-align: center'>" + score + "</td>" +
+                                "<td style='text-align: center'>" + city + "</td>" +
+                                "<td style='text-align: center'>" + data.icon + "</td>" +
+                                "</tr>\n";
+                                callbackCounter++;
+                                if (callbackCounter == arrLength)
+                                {
+                                    callback(output);
+                                }
+                            }
+                            else {
+                                callbackCounter++;
+                                if (callbackCounter == arrLength)
+                                {
+                                    callback(output);
+                                }
+                                console.log('error geting summary');
+                            }
+                    };
+    	        })(tweetsGeo)
+    	        );
+		    }
+		});
+    }
 }
 
 function waitForCallback(output, callback)
@@ -251,79 +371,26 @@ function waitForCallback(output, callback)
     }
     
     for (var i=0; i<tweetsGeo.length; i++) {
-		if (i == 0)
+		if (i == 1)
 		{
-		    //console.log(tweetsGeo[i]);
+		    //console.log(tweetsNoGeo[i]);
 		}
 		
-		/*
-		                                      lat           long
-		  geo: { type: 'Point', coordinates: [ 40.77893666, -73.9622982 ] },
-		                                      long          lat
-  coordinates: { type: 'Point', coordinates: [ -73.9622982, 40.77893666 ] },
-		*/
 		
-		var longitude = tweetsGeo[i].coordinates.coordinates[0];
-		var latitude = tweetsGeo[i].coordinates.coordinates[1];
+		if (tweetsGeo[i].coordinates)
+		{
+		    
+		}
+		else if (tweetsGeo[i].user.location)
+		{
+		    
+		    
+		}
 		
-		console.log(latitude + ", " + longitude);
-		
-		
-		var callbackCounter = 0;
-		var arrLength = tweetsGeo.length;
 		var condition = "N/A";
-		
-		function myCallback(err, weatherData) {
-		    if (err) {
-		        condition = "null";
-		        console.log('error returning weather object');
-		    } else {
-		        condition = weatherData.icon;
-		        //console.log(weatherData.icon);
-		    }
-		}
-		
-		
-		
-		yrno.getWeather({lat: latitude, lon: longitude}, function(err, location){
-		    //console.log("GET WEATHER");
-		    if (err) {
-		        myCallback(err, null)
-    			return;
-		    }
-		    
-		    console.log("loading " + (callbackCounter+1) + " of " + tweetsGeo.length);
-		    
-	        location.getCurrentSummary((function(tweetsGeo){
-        	        return function(err2, data) {
-                        var tweet = tweetsGeo[callbackCounter];
-                        var score = analyze(tweet.text).score;
-	                	var city = tweet.place.full_name;
-                        //condition = data.icon;
-                        //console.log("GET SUMMARY");
-                        //console.log(condition);
-                        //console.log(data.icon);
-                        output += "<tr class=\"data\">" +
-                        "<td style='text-align: center'>" + '<img src="' + tweet.user.profile_image_url + '"/>' +
-                        "</td>" +
-                        "<td style='text-align: center'>@" + tweet.user.screen_name +
-                        "</td>" +
-                        "<td>" + tweet.created_at + "</td>" +
-                        "<td>" + JSON.stringify(tweet.text, null, 4).replace(/["']/g, "") + "</td>" +
-                        "<td style='text-align: center'>" + score + "</td>" +
-                        "<td style='text-align: center'>" + city + "</td>" +
-                        "<td style='text-align: center'>" + data.icon + "</td>" +
-                        "</tr>\n";
-                        callbackCounter++;
-                        if (callbackCounter == arrLength)
-                        {
-                            callback(output)
-                        }
-                        
-    	        };
-	        })(tweetsGeo)
-	        );
-		});
+	    function writeData(city, longitude, latitude) {
+    		
+	    }
 	}
 }
 
@@ -353,3 +420,4 @@ function clone(obj) {
 var port = process.env.PORT;
 var ip = process.env.IP;
 app.listen(port, ip);
+

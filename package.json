@@ -13,6 +13,7 @@
 	"Sentimental": "latest",
 	"jqtpl": "latest",
 	"yr.no-forecast": "latest",
+	"geocoder": "latest",
 	"sugar": "latest"
   },
   "engines": {
