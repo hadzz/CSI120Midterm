@@ -8,6 +8,12 @@ table{
 		width: 50%;
 }
 
+.separator {
+		background-color: #ff9933;
+		font-weight:bold;
+		width: 50%;
+}
+
 .data{
 		background-color: #f6f1ee;
 		width: 50%;

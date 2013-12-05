@@ -1,13 +1,10 @@
 var express = require('express');
 var app = express();
-var weathers = require('weathers');
-var weather = require('weather.js/weather.js');
 //var connect = require('connect');
 var yrno = require('yr.no-forecast')
 var fs = require('fs');
 var Twit = require('twit');
 var ce = require('cloneextend');
-var geocoder = require('geocoder');
 var analyze = require('Sentimental').analyze,
 	positivity = require('Sentimental').positivity,
 	negativity = require('Sentimental').negativty;
@@ -81,16 +78,7 @@ app.post('/submit', function(req, res) {
 	console.log('Longitude: ' + longitude);
 	console.log('Latitude: ' + latitude);
 	
-	weathers.getWeather(latitude, longitude, function(err, data){
-		if (data)
-		{
-			var temp = JSON.stringify(data.currentobservation.Temp, null, 4).replace(/["']/g, "");
-			var location = JSON.stringify(data.location.areaDescription, null, 4).replace(/["']/g, "");
-			console.log("Current Location: " + location);
-			console.log("Current Temperature: " + temp);
-		}
-    });
-	
+
 	var numOfTweets = 100;
 	
 	
@@ -135,7 +123,7 @@ app.post('/submit', function(req, res) {
 				{ 
 					res.render(__dirname + '/page2_2.html', {test1: 'Results'}, function(err, html2)
 					{ 
-						twitReply = clone(reply);
+						twitReply = ce.clone(reply);
 						var hostName = req.get('host');
 						var header = "<p>Number of Results: " + twitReply.statuses.length + "</p>";
 						createTableBody(sendHTML);
@@ -162,7 +150,7 @@ app.post('/submit', function(req, res) {
 				{ 
 					res.render(__dirname + '/page2_2.html', {test1: 'Results'}, function(err, html2)
 					{ 
-							twitReply = clone(reply);
+							twitReply = ce.clone(reply);
 							var header = "<p>Number of Results: " + twitReply.statuses.length + "</p>";
 							var hostName = req.get('host');
     						createTableBody(sendHTML);
@@ -205,11 +193,11 @@ function lookForEmpty()
 function createTableBody(callback)
 {
 	for (var i=0; i<twitReply.statuses.length; i++) {
-		if (twitReply.statuses[i].user.location && !twitReply.statuses[i].place)
+		if (!twitReply.statuses[i].place)
 		{
 			tweetsNoGeo.push(twitReply.statuses[i]);
 		}
-		else if (twitReply.statuses[i].place)
+		else
 		{
 			tweetsGeo.push(twitReply.statuses[i]);
 		}
@@ -223,82 +211,38 @@ function createTableBody(callback)
 	
 	createGeoTable(output1, function(output1Res) {
             createNoGeoTable(output2, function(output2Res) {
-                callback(output1Res + output2Res);
+                callback("<tr class='separator'><td colspan='7'>Geo Tweets</td></tr>" + output1Res + "<tr class='separator'><td colspan='7'>Non Geo Tweets</td></tr>" + output2Res);
             });
         }
 	);
-	
-	
 }
 
 function createNoGeoTable (output, callback)
 {
-    var callbackCounter = 0;
-    var callbackCounter2 = 0;
     for (var i=0; i<tweetsNoGeo.length; i++) {
-        var city = tweetsNoGeo[i].user.location;
-        
+        var city = "N/A";
 		var arrLength = tweetsNoGeo.length;
-        geocoder.geocode(city, function (err, data) {
-            if (data && data.status != "OVER_QUERY_LIMIT" && data.status != "ZERO_RESULTS") {
-                
-                callbackCounter2++;
-                console.log(data.results[0]);
-                var longitude = data.results[0].geometry.location.lng;
-	        	var latitude = data.results[0].geometry.location.lat;
-	        	console.log("Lon: " + longitude + ", Lat: " + latitude);
-	        	tweetsNoGeo[callbackCounter2 - 1]["aproxCity"] = data.results[0].formatted_address;
-	        	yrno.getWeather({lat: latitude, lon: longitude}, function(err, location){
-        		    if (err) {
-        		        callbackCounter++;
-        		        console.log('Error returning weather object');
-        		        if (callbackCounter == callbackCounter2)
-                        {
-                            callback(output);
-                        }
-        		    }
-        		    else {
-            		    console.log("loading " + (callbackCounter+1) + " of " + callbackCounter2);
-            	        location.getCurrentSummary((function(tweetsNoGeo){
-                    	        return function(err2, data) {
-                    	            if (!err2)
-                    	            {
-                    	                
-                                        var tweet = tweetsNoGeo[callbackCounter];
-                                        var score = analyze(tweet.text).score;
-                                        output += "<tr class=\"data\">" +
-                                        "<td style='text-align: center'>" + '<img src="' + tweet.user.profile_image_url + '"/>' +
-                                        "</td>" +
-                                        "<td style='text-align: center'>@" + tweet.user.screen_name +
-                                        "</td>" +
-                                        "<td>" + tweet.created_at + "</td>" +
-                                        "<td>" + JSON.stringify(tweet.text, null, 4).replace(/["']/g, "") + "</td>" +
-                                        "<td style='text-align: center'>" + score + "</td>" +
-                                        "<td style='text-align: center'>" + tweet.aproxCity + " (APROX)</td>" +
-                                        "<td style='text-align: center'>" + data.icon + "</td>" +
-                                        "</tr>\n";
-                                        callbackCounter++;
-                                        if (callbackCounter == callbackCounter2)
-                                        {
-                                            callback(output);
-                                        }
-                                    }
-                                    else {
-                                        callbackCounter++;
-                                        if (callbackCounter == callbackCounter2)
-                                        {
-                                            callback(output);
-                                        }
-                                        console.log('error geting summary');
-                                    }
-                            };
-            	        })(tweetsNoGeo)
-            	        );
-        		    }
-        		});
-            }
-        });
+		
+        var tweet = tweetsNoGeo[i];
+        var score = analyze(tweet.text).score;
+        
+        if (tweet.user.location) {
+            city = tweetsNoGeo[i].user.location;
+        }
+        
+        output += "<tr class=\"data\">" +
+        "<td style='text-align: center'>" + '<img src="' + tweet.user.profile_image_url + '"/>' +
+        "</td>" +
+        "<td style='text-align: center'>@" + tweet.user.screen_name +
+        "</td>" +
+        "<td>" + tweet.created_at + "</td>" +
+        "<td>" + JSON.stringify(tweet.text, null, 4).replace(/["']/g, "") + "</td>" +
+        "<td style='text-align: center'>" + score + "</td>" +
+        "<td style='text-align: center'>" + city + "</td>" +
+        "<td style='text-align: center'>" + "N/A" + "</td>" +
+        "</tr>\n";
     }
+    callback(output);
 }
 
 function createGeoTable (output, callback)
@@ -363,59 +307,6 @@ function createGeoTable (output, callback)
 		});
     }
 }
-
-function waitForCallback(output, callback)
-{
-    if (tweetsGeo.length==0) {
-        callback("");
-    }
-    
-    for (var i=0; i<tweetsGeo.length; i++) {
-		if (i == 1)
-		{
-		    //console.log(tweetsNoGeo[i]);
-		}
-		
-		
-		if (tweetsGeo[i].coordinates)
-		{
-		    
-		}
-		else if (tweetsGeo[i].user.location)
-		{
-		    
-		    
-		}
-		
-		var condition = "N/A";
-	    function writeData(city, longitude, latitude) {
-    		
-	    }
-	}
-}
-
-function logData(data)
-{
-	fs.writeFile("log.txt", data, function(err) {
-		if(err) {
-			console.log(err);
-		} else {
-			console.log("The file was saved!");
-		}
-	}); 
-}
-
-
-function clone(obj) {
-    if (null == obj || "object" != typeof obj) return obj;
-    var copy = obj.constructor();
-    for (var attr in obj) {
-        if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr];
-    }
-    return copy;
-}
-
-
 
 var port = process.env.PORT;
 var ip = process.env.IP;
