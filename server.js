@@ -193,7 +193,7 @@ function lookForEmpty()
 function createTableBody(callback)
 {
 	for (var i=0; i<twitReply.statuses.length; i++) {
-		if (!twitReply.statuses[i].place)
+		if (!twitReply.statuses[i].coordinates)
 		{
 			tweetsNoGeo.push(twitReply.statuses[i]);
 		}
